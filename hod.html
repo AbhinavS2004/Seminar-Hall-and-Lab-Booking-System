@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HOD Dashboard - Pending Requests</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Pending Booking Requests</h1>
+    <div id="pendingRequests">
+      <!-- Pending requests will be dynamically loaded here -->
+    </div>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <!-- Include Socket.IO client script -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="hod.js"></script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seminar Hall and Lab Booking System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Seminar Hall and Lab Booking System</h1>
+
+    <!-- Login Form -->
+    <div id="loginForm" class="auth-form">
+      <h2>Login</h2>
+      <input type="text" id="loginUsername" placeholder="Username" required>
+      <input type="password" id="loginPassword" placeholder="Password" required>
+      <button onclick="login()">Login</button>
+      <p>Don't have an account? <span class="toggle-link" onclick="toggleForm('register')">Register here</span></p>
+    </div>
+
+    <!-- Registration Form (Initially hidden) -->
+    <div id="registerForm" class="auth-form hidden">
+      <h2>Register</h2>
+      <input type="text" id="registerUsername" placeholder="Username" required>
+      <input type="password" id="registerPassword" placeholder="Password" required>
+      <button onclick="register()">Register</button>
+      <p>Already have an account? <span class="toggle-link" onclick="toggleForm('login')">Login here</span></p>
+    </div>
+
+    <!-- Booking Section (Hidden until login) -->
+    <div id="bookingSection" class="hidden">
+      <label for="room">Room:</label>
+      <select id="room">
+        <option value="" disabled selected>Select a room</option>
+        <option value="Main Seminar Hall">Main Seminar Hall</option>
+        <option value="CS Seminar Hall">CS Seminar Hall</option>
+        <option value="PL Lab">PL Lab</option>
+        <option value="ADP Lab">ADP Lab</option>
+        <option value="NP Lab">NP Lab</option>
+        <option value="SI Lab">SI Lab</option>
+        <option value="CCF10 Lab">CCF10 Lab</option>
+        <option value="CCF11 Lab">CCF11 Lab</option>
+      </select>
+
+      <label for="date">Date:</label>
+      <input type="date" id="date">
+
+      <h2>Available Periods</h2>
+      <div id="periods"></div>
+    </div>
+
+    <!-- Purpose Input Popup (Initially hidden) -->
+    <div id="purposePopup" class="hidden">
+      <h2>Enter Booking Purpose</h2>
+      <input type="text" id="purposeInput" placeholder="Purpose" required>
+      <button onclick="confirmPurpose()">Confirm Booking</button>
+      <button onclick="cancelPurpose()">Cancel</button>
+    </div>
+
+    <!-- Messages -->
+    <div id="errorMessage" class="error-message"></div>
+    <div id="successMessage" class="success-message"></div>
+  </div>
+
+  <!-- Include Socket.IO client script before main script -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Do not use type="module" so functions are globally available -->
+  <script src="script.js"></script>
+</body>
+</html>
