@@ -10,6 +10,9 @@
   <div class="container">
     <h1>Seminar Hall and Lab Booking System</h1>
 
+    <!-- Username display (initially hidden) -->
+    <div id="userDisplay" class="hidden"></div>
+
     <!-- Login Form -->
     <div id="loginForm" class="auth-form">
       <h2>Login</h2>
@@ -48,6 +51,12 @@
 
       <h2>Available Periods</h2>
       <div id="periods"></div>
+      
+      <!-- Button to book multiple selected slots -->
+      <button id="bookSelectedBtn" class="hidden" onclick="openPurposeForSelection()">Book Selected Slots</button>
+      
+      <!-- Logout button for user dashboard -->
+      <button id="userLogoutBtn" onclick="userLogout()">Logout</button>
     </div>
 
     <!-- Purpose Input Popup (Initially hidden) -->
