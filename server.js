@@ -171,7 +171,7 @@ app.get('/api/bookings/pending', (req, res) => {
     );
 });
 
-// HOD Approval API with email notification
+// HOD Approval API with email notification and cleanup of other pending requests
 app.post('/api/bookings/approve', (req, res) => {
     const { requestId } = req.body;
     db.query(
@@ -206,6 +206,19 @@ app.post('/api/bookings/approve', (req, res) => {
                                 console.log('Email sent: ' + info.response);
                             }
                         });
+
+                        // Remove all other pending bookings for this same slot
+                        db.query(
+                            'DELETE FROM bookings WHERE room = ? AND date = ? AND period = ? AND status = ? AND id != ?',
+                            [room, date, period, 'pending', requestId],
+                            (err, result) => {
+                                if (err) {
+                                    console.error('Error removing other pending bookings:', err);
+                                } else {
+                                    console.log(`Removed ${result.affectedRows} other pending bookings.`);
+                                }
+                            }
+                        );
                     }
                 }
             );
@@ -215,6 +228,7 @@ app.post('/api/bookings/approve', (req, res) => {
         }
     );
 });
+
 
 
 // HOD Rejection API
@@ -266,19 +280,40 @@ app.get('/api/bookings/availability', (req, res) => {
                     purpose: null
                 }));
                 
-                results.forEach((booking) => {
-                    const periodIndex = booking.period - 1;
-                    if (periodIndex >= 0 && periodIndex < 7) {
-                        if (booking.status === 'pending' && booking.userId !== currentUserId) {
-                            return; // Keep available for other users
-                        }
-                        periods[periodIndex] = {
-                            booked: true,
-                            status: booking.status,
-                            purpose: booking.purpose
-                        };
+                // Group bookings by period
+                const periodBookings = {};
+                results.forEach(booking => {
+                    if (!periodBookings[booking.period]) {
+                        periodBookings[booking.period] = [];
                     }
+                    periodBookings[booking.period].push(booking);
                 });
+                
+                // For each period, determine its status
+                for (let i = 1; i <= 7; i++) {
+                    if (periodBookings[i]) {
+                        const bookings = periodBookings[i];
+                        // If any booking is approved, mark the slot as booked for everyone.
+                        const approvedBooking = bookings.find(b => b.status === 'booked');
+                        if (approvedBooking) {
+                            periods[i - 1] = {
+                                booked: true,
+                                status: 'booked',
+                                purpose: approvedBooking.purpose
+                            };
+                        } else {
+                            // If the current user has a pending booking, mark it as pending for that user.
+                            const currentUserPending = bookings.find(b => b.status === 'pending' && b.userId === currentUserId);
+                            if (currentUserPending) {
+                                periods[i - 1] = {
+                                    booked: true,
+                                    status: 'pending',
+                                    purpose: currentUserPending.purpose
+                                };
+                            }
+                        }
+                    }
+                }
                 
                 res.json(periods);
             }
