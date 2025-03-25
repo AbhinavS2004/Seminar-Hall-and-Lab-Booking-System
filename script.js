@@ -1,6 +1,10 @@
 // Connect to the WebSocket server
 const socket = io(); // Automatically connects to the same server
 
+// Global array to hold selected slots for multi booking.
+let selectedSlots = [];
+
+// --- Utility Functions ---
 function toggleForm(type) {
     clearMessages();
     if (type === 'register') {
@@ -29,6 +33,12 @@ function clearMessages() {
     document.getElementById('successMessage').style.display = 'none';
 }
 
+// --- Function to open the purpose popup for multi-slot booking ---
+function openPurposeForSelection() {
+    clearMessages();
+    showPurposePopup();
+}
+
 // --- Purpose Popup Handling ---
 let selectedRoom = null;
 let selectedDate = null;
@@ -50,14 +60,22 @@ function cancelPurpose() {
     hidePurposePopup();
 }
 
+// --- Confirm Purpose for Multi-Slot Booking ---
 async function confirmPurpose() {
     const purpose = document.getElementById('purposeInput').value.trim();
     if (!purpose) {
         showErrorMessage('Purpose is required for booking.');
         return;
     }
-    await bookPeriod(selectedRoom, selectedDate, selectedPeriod, purpose);
+    // Loop through each selected slot and send the booking request.
+    for (const slot of selectedSlots) {
+        await bookPeriod(slot.room, slot.date, slot.period, purpose);
+    }
     hidePurposePopup();
+    // Clear the selection after processing.
+    selectedSlots = [];
+    document.getElementById('bookSelectedBtn').classList.add('hidden');
+    loadPeriods();
 }
 
 // --- Authentication Functions ---
@@ -73,22 +91,32 @@ async function login() {
     });
     
     const data = await res.json();
-    console.log("Login response:", data); // Debug output
+    console.log("Login response:", data);
     
     if (res.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('userId', data.userId); // Store userId for socket communication
+        // Save token, userId and username in sessionStorage so they persist only for the session.
+        sessionStorage.setItem('token', data.token);
+        sessionStorage.setItem('userId', data.userId);
+        sessionStorage.setItem('username', username);
 
         // Redirect HOD users to hod.html
         if (data.role && data.role.toUpperCase() === 'HOD') {
             window.location.href = '/hod.html';
         } else {
+            // Hide login and registration forms and show booking dashboard.
             document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+
+            // Display the username on top.
+            const userDisplay = document.getElementById('userDisplay');
+            userDisplay.textContent = "Username : " + username;
+            userDisplay.classList.remove('hidden');
+
             document.getElementById('bookingSection').classList.remove('hidden');
             showSuccessMessage('Login successful!');
             loadPeriods();
 
-            // Register user with socket for real-time updates
+            // Register user with socket for real-time updates.
             socket.emit('registerUser', data.userId);
         }
     } else {
@@ -116,15 +144,30 @@ async function register() {
     }
 }
 
+// --- User Logout Function ---
+function userLogout() {
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('userId');
+    sessionStorage.removeItem('username');
+    window.location.href = '/';
+}
+window.userLogout = userLogout;
+
 // --- Event Listeners for Room and Date Changes ---
 document.getElementById('room').addEventListener('change', () => {
+    // Clear any selected slots when room changes.
+    selectedSlots = [];
+    document.getElementById('bookSelectedBtn').classList.add('hidden');
     loadPeriods();
-    hidePurposePopup(); // Hide popup if room changes
+    hidePurposePopup();
 });
 
 document.getElementById('date').addEventListener('change', () => {
+    // Clear any selected slots when date changes.
+    selectedSlots = [];
+    document.getElementById('bookSelectedBtn').classList.add('hidden');
     loadPeriods();
-    hidePurposePopup(); // Hide popup if date changes
+    hidePurposePopup();
 });
 
 // --- Load Booking Slots ---
@@ -134,7 +177,7 @@ async function loadPeriods() {
     if (!room || !date) return;
     
     clearMessages();
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const response = await fetch(`/api/bookings/availability?room=${room}&date=${date}`, {
         headers: { Authorization: `Bearer ${token}` }
     });
@@ -170,25 +213,50 @@ async function loadPeriods() {
             }
         } else {
             periodDiv.classList.add('available');
+            // Set custom data attributes for multi selection.
+            periodDiv.setAttribute('data-room', room);
+            periodDiv.setAttribute('data-date', date);
+            periodDiv.setAttribute('data-period', i + 1);
             periodDiv.onclick = () => handlePeriodClick(room, date, i + 1);
+            
+            // If this slot is already selected, add the "selected" style.
+            if (selectedSlots.find(slot => slot.room === room && slot.date === date && slot.period === i + 1)) {
+                periodDiv.classList.add('selected');
+            }
         }
         periodsDiv.appendChild(periodDiv);
     }
 }
 
+// --- Slot Click Handler for Multi-Selection ---
 function handlePeriodClick(room, date, period) {
     clearMessages();
-    selectedRoom = room;
-    selectedDate = date;
-    selectedPeriod = period;
-    showPurposePopup();
+    // Toggle selection: check if the slot is already selected.
+    const slotIndex = selectedSlots.findIndex(slot => slot.room === room && slot.date === date && slot.period === period);
+    if (slotIndex > -1) {
+        // If already selected, remove from selection.
+        selectedSlots.splice(slotIndex, 1);
+        const slotElem = document.querySelector(`[data-room="${room}"][data-date="${date}"][data-period="${period}"]`);
+        if (slotElem) {
+            slotElem.classList.remove('selected');
+        }
+    } else {
+        // Add the slot to the selection.
+        selectedSlots.push({ room, date, period });
+        const slotElem = document.querySelector(`[data-room="${room}"][data-date="${date}"][data-period="${period}"]`);
+        if (slotElem) {
+            slotElem.classList.add('selected');
+        }
+    }
+    // Toggle the visibility of the "Book Selected Slots" button based on selection count.
+    document.getElementById('bookSelectedBtn').classList.toggle('hidden', selectedSlots.length === 0);
 }
 
 // --- Book a Period (Send Request) ---
 async function bookPeriod(room, date, period, purpose) {
     clearMessages();
-    const token = localStorage.getItem('token');
-    const userId = localStorage.getItem('userId'); // Retrieve userId for real-time updates
+    const token = sessionStorage.getItem('token');
+    const userId = sessionStorage.getItem('userId');
 
     const response = await fetch('/api/bookings', {
         method: 'POST',
@@ -202,7 +270,7 @@ async function bookPeriod(room, date, period, purpose) {
     if (response.ok) {
         showSuccessMessage('Booking request sent for HOD approval.');
         socket.emit('bookingRequestMade', { userId, room, date, period });
-        loadPeriods();
+        await loadPeriods();
     } else {
         const errorData = await response.json();
         console.error(errorData);
@@ -217,7 +285,7 @@ socket.on('slotPending', ({ room, date, period }) => {
     if (room === currentRoom && date === currentDate) {
         const slot = document.querySelector(`[data-room="${room}"][data-date="${date}"][data-period="${period}"]`);
         if (slot) {
-            slot.classList.add('pending'); // Turn yellow for requesting user
+            slot.classList.add('pending'); // Turn yellow for requesting user.
             slot.classList.remove('available');
         }
     }
@@ -227,9 +295,33 @@ socket.on('pendingRequestUpdate', () => {
     loadPeriods();
 });
 
-// Attach functions to global scope so inline handlers can find them.
-window.login = login;
-window.register = register;
-window.toggleForm = toggleForm;
-window.confirmPurpose = confirmPurpose;
-window.cancelPurpose = cancelPurpose;
+// --- Check for Token on Page Load ---
+document.addEventListener('DOMContentLoaded', () => {
+    const token = sessionStorage.getItem('token');
+    if (token) {
+        // User is logged in; hide login and registration forms.
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('registerForm').classList.add('hidden');
+
+        // Display username if available.
+        const username = sessionStorage.getItem('username');
+        if (username) {
+            const userDisplay = document.getElementById('userDisplay');
+            userDisplay.textContent = "Username : " + username;
+            userDisplay.classList.remove('hidden');
+        }
+
+        // Show the booking dashboard.
+        document.getElementById('bookingSection').classList.remove('hidden');
+        loadPeriods();
+
+        // Register with Socket.IO.
+        const userId = sessionStorage.getItem('userId');
+        if (userId) {
+            socket.emit('registerUser', userId);
+        }
+    } else {
+        // No token: show login form.
+        document.getElementById('loginForm').classList.remove('hidden');
+    }
+});
