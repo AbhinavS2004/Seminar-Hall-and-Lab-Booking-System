@@ -21,6 +21,13 @@ body {
     text-align: center;
 }
 
+/* Username Display Styling */
+#userDisplay {
+    margin-bottom: 20px; /* Adds space between the username display and room selection */
+    font-size: 18px;
+    font-weight: bold;
+}
+
 h1, h2 {
     margin-bottom: 20px;
     color: #333;
@@ -92,6 +99,13 @@ button:hover {
     cursor: not-allowed;
 }
 
+.period.selected {
+    background-color: green;  /* retains the available slot color */
+    border: 3px solid darkgreen;
+    box-shadow: 0 0 15px rgba(0, 100, 0, 0.8);
+    color: white;
+}
+
 /* Tooltip for booked and pending slots */
 .period.booked:hover::after,
 .period.pending:hover::after {
@@ -141,7 +155,7 @@ button:hover {
     left: 50%;
     transform: translate(-50%, -50%);
     background: white;
-    padding: 20px;
+    padding: 15px;
     border: 2px solid #007bff;
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
@@ -151,13 +165,25 @@ button:hover {
     text-align: center;
 }
 
+/* Reduced length for purpose input field */
 #purposeInput {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
+    width: 80%;       /* Reduced width instead of taking full width */
+    padding: 8px;
+    margin: 8px auto; /* Centers the input field within the popup */
     border: 1px solid #ccc;
     border-radius: 6px;
-    font-size: 16px;
+    font-size: 14px;
+}
+
+/* HOD Dashboard: Scrollable Pending Requests Container */
+#pendingRequests {
+    max-height: 400px; /* Adjust height as needed */
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid #ccc;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
 }
 
 /* Responsive Styles */
