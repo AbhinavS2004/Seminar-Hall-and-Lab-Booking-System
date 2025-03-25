@@ -1,6 +1,5 @@
-// When the HOD dashboard loads, check for a valid token and load pending requests.
 document.addEventListener('DOMContentLoaded', () => {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token'); // Use sessionStorage here
   if (!token) {
     window.location.href = '/';
     return;
@@ -8,10 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
   loadPendingRequests();
 
   document.getElementById('logoutBtn').addEventListener('click', () => {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token'); // And remove from sessionStorage on logout
     window.location.href = '/';
   });
 });
+
 
 async function loadPendingRequests() {
   const token = localStorage.getItem('token');
@@ -23,6 +23,7 @@ async function loadPendingRequests() {
       throw new Error('Failed to fetch pending requests.');
     }
     const requests = await response.json();
+    console.log("Total pending requests:", requests.length);
     displayPendingRequests(requests);
   } catch (error) {
     document.getElementById('pendingRequests').innerHTML = `<p>${error.message}</p>`;
@@ -39,12 +40,13 @@ function displayPendingRequests(requests) {
   }
 
   requests.forEach(request => {
+    console.log("Displaying request:", request.id);
     const div = document.createElement('div');
     div.className = 'pending-request';
 
     // Convert UTC date to local date correctly
     const localDate = new Date(request.date);
-    const formattedDate = localDate.toLocaleDateString('en-GB'); // Format: DD/MM/YYYY
+    const formattedDate = localDate.toLocaleDateString('en-GB');
 
     div.innerHTML = `
       <p><strong>Username:</strong> ${request.username}</p>
@@ -59,7 +61,6 @@ function displayPendingRequests(requests) {
     container.appendChild(div);
   });
 }
-
 
 async function approveRequest(requestId) {
   const token = localStorage.getItem('token');
