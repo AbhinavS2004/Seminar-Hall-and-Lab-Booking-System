@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS bookingSystem;
-USE bookingSystem;
+CREATE DATABASE IF NOT EXISTS bookingsystem;
+USE bookingsystem;
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
